@@ -8,8 +8,8 @@ namespace CloudplayWebApp.Models
     {
         [Key]
         [DisplayName("Name")]
-        public string Name { get; set; }
-        [Required]
+        public string Name { get; set; } 
+      
         [DisplayName("IP")]
         public string IP { get; set; }
 
@@ -21,5 +21,7 @@ namespace CloudplayWebApp.Models
         [DataType(DataType.Password)]
         [DisplayName("Password")]
         public string Password { get; set; }
+
+       
     }
 }

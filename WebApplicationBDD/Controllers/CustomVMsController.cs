@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CloudplayWebApp.Data;
 using CloudplayWebApp.Models;
@@ -16,8 +11,6 @@ using Azure.ResourceManager.Network;
 using Azure.ResourceManager.Resources;
 using Azure.ResourceManager;
 using Azure;
-using Microsoft.Azure.Management.ResourceManager.Models;
-using Microsoft.Azure.Management.Compute.Models;
 
 namespace CloudplayWebApp.Controllers
 {
@@ -131,6 +124,7 @@ namespace CloudplayWebApp.Controllers
             var virtualMachine = virtualMachines.GetAsync(name).Result.Value;
             virtualMachine.PowerOn(WaitUntil.Completed);
         }
+
         [HttpPost, ActionName("Run")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RunAsync(string id)
@@ -281,13 +275,13 @@ namespace CloudplayWebApp.Controllers
 
             //Create resource group
             ResourceGroupData resourceGroupData = new(AzureLocation.NorthEurope);
-            await resourceGroups.CreateOrUpdateAsync(WaitUntil.Completed, "rg-gaming-010", resourceGroupData);
+            await resourceGroups.CreateOrUpdateAsync(WaitUntil.Completed, "rg-gaming-666", resourceGroupData);
 
             customVM.Name = "VM01";
             customVM.IP = "MyIP";
 
             //Gets target resource group
-            ResourceGroupResource resourceGroup = await resourceGroups.GetAsync("rg-gaming-010");
+            ResourceGroupResource resourceGroup = await resourceGroups.GetAsync("rg-gaming-666");
 
             VirtualMachineCollection vms = resourceGroup.GetVirtualMachines();
             NetworkInterfaceCollection nics = resourceGroup.GetNetworkInterfaces();
