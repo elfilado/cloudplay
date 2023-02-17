@@ -1,4 +1,5 @@
-﻿@model IEnumerable<CloudplayWebApp.Models.CustomVM>
+﻿@using CloudplayWebApp.Controllers;
+@model IEnumerable<CloudplayWebApp.Models.CustomVM>
 
 @{
     ViewData["Title"] = "Index";
@@ -41,14 +42,22 @@
                 <a asp-action="Details" asp-route-id="@item.Name">Details</a> |
                 <a asp-action="Delete" asp-route-id="@item.Name">Delete</a>
             </td>
-            <td>
-                <a asp-action="Run"> 
-                    <input type="submit" value="Run" class="btn btn-primary" />
-                </a>
-                <a asp-action="Stop">
-                    <input type="submit" value="Stop" class="btn btn-danger" />
-                </a>
-            </td>   
+                @if (!(await CustomVMsController.VMstatus(item.Name)))
+                {
+                    <td>
+                        <form asp-action="RunOrStop" asp-route-nom="@item.Name">
+                            <input type="submit" value="Stop" class="btn btn-danger" />
+                        </form>
+                    </td>
+                }
+                else
+                {
+                    <td>
+                        <form asp-action="RunOrStop" asp-route-nom="@item.Name">
+                            <input type="submit" value="Run" class="btn btn-success" />
+                        </form>
+                    </td>
+                }
         </tr>
 }
     </tbody>

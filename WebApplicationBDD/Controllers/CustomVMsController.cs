@@ -11,9 +11,11 @@ using Azure.ResourceManager.Network;
 using Azure.ResourceManager.Resources;
 using Azure.ResourceManager;
 using Azure;
+using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace CloudplayWebApp.Controllers
 {
+    [TypeFilter(typeof(AuthorizationFilter))]
     public class CustomVMsController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -32,26 +34,6 @@ namespace CloudplayWebApp.Controllers
                 user = user.Split("@")[0].Replace(".", "");
             }
             return user;
-        }
-
-        private static async Task StopVMAsync()
-        {
-            //Connect to Azure with Visual Studio credentials
-            ArmClient client = new(new DefaultAzureCredential());
-            //Gets subscription
-            SubscriptionResource subscription = await client.GetDefaultSubscriptionAsync();
-            //Gets all resource groups
-            ResourceGroupCollection resourceGroups = subscription.GetResourceGroups();
-
-            //Create resource group
-            ResourceGroupData resourceGroupData = new(AzureLocation.NorthEurope);
-            await resourceGroups.CreateOrUpdateAsync(WaitUntil.Completed, "rg-gaming-011", resourceGroupData);
-
-            //Gets target resource group
-            ResourceGroupResource resourceGroup = await resourceGroups.GetAsync("rg-gaming-011");
-
-            VirtualMachineResource virtualMachine = await resourceGroup.GetVirtualMachineAsync("MM01");         
-            await virtualMachine.PowerOffAsync(WaitUntil.Completed);          
         }
 
         // GET: CustomVMs
@@ -93,56 +75,6 @@ namespace CloudplayWebApp.Controllers
             }
 
             return View(customVM);
-        }
-
-        //public async Task<IActionResult> Stop(string id)
-        //{
-        //    if (id == null || _context.CustomVMs == null)
-        //    {
-        //        return NotFound();
-        //    }
-
-        //    var customVM = await _context.CustomVMs
-        //        .FirstOrDefaultAsync(m => m.Name == id);
-        //    if (customVM == null)
-        //    {
-        //        return NotFound();
-        //    }
-        //    await customVM.
-        //}
-
-        public static void StartAzureVm(string? name)
-        {
-            var armClient = new ArmClient(new DefaultAzureCredential());
-
-            var subscription = armClient.GetDefaultSubscriptionAsync().Result;
-
-            var resourceGroups = subscription.GetResourceGroups();
-            ResourceGroupResource resourceGroup = resourceGroups.GetAsync("rg-gaming-010").Result;
-
-            var virtualMachines = resourceGroup.GetVirtualMachines();
-            var virtualMachine = virtualMachines.GetAsync(name).Result.Value;
-            virtualMachine.PowerOn(WaitUntil.Completed);
-        }
-
-        [HttpPost, ActionName("Run")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> RunAsync(string id)
-        {
-            if (id == null || _context.CustomVMs == null)
-            {
-                return NotFound();
-            }
-
-            var customVM = await _context.CustomVMs
-                .FirstOrDefaultAsync(m => m.Name == id);
-            if (customVM == null)
-            {
-                return NotFound();
-            }
-            StartAzureVm(id);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
         }
 
         // GET: CustomVMs/Create
@@ -262,12 +194,32 @@ namespace CloudplayWebApp.Controllers
         {
             return (_context.CustomVMs?.Any(e => e.Name == id)).GetValueOrDefault();
         }
-
-        private async Task CreateVirtualMachineAsync(CustomVM customVM)
+        public static async Task<bool> VMstatus(string nom)
         {
+            bool resultat = false;
+            ArmClient armClient = new(new ClientSecretCredential("b7b023b8-7c32-4c02-92a6-c8cdaa1d189c", "180d646d-d208-450a-bd63-397d3a7be25d", "Kct8Q~WpQGqBJCJ6YtQeHB_6QlLfmUm.4vsrQbrX"));
+            SubscriptionResource subscription = armClient.GetDefaultSubscription();
+            ResourceGroupResource resourceGroupResource = armClient.GetDefaultSubscription().GetResourceGroup("rg-gaming-667");
 
+
+            VirtualMachineCollection vms = resourceGroupResource.GetVirtualMachines();
+
+            foreach (VirtualMachineResource vm in vms)
+            {
+                if (nom.Equals(vm.Id.Name))
+                {
+
+                    resultat = vm.InstanceView(CancellationToken.None).Value.Statuses[1].Code.Equals("PowerState/stopped");
+                }
+            }
+            return resultat;
+        }
+
+
+        public async Task<IActionResult> RunOrStop(string nom)
+        {
             //Connect to Azure with Visual Studio credentials
-            ArmClient client = new(new DefaultAzureCredential());
+            ArmClient client = new(new ClientSecretCredential("b7b023b8-7c32-4c02-92a6-c8cdaa1d189c", "180d646d-d208-450a-bd63-397d3a7be25d", "Kct8Q~WpQGqBJCJ6YtQeHB_6QlLfmUm.4vsrQbrX"));
             //Gets subscription
             SubscriptionResource subscription = await client.GetDefaultSubscriptionAsync();
             //Gets all resource groups
@@ -275,13 +227,52 @@ namespace CloudplayWebApp.Controllers
 
             //Create resource group
             ResourceGroupData resourceGroupData = new(AzureLocation.NorthEurope);
-            await resourceGroups.CreateOrUpdateAsync(WaitUntil.Completed, "rg-gaming-666", resourceGroupData);
+            await resourceGroups.CreateOrUpdateAsync(WaitUntil.Completed, "rg-gaming-667", resourceGroupData);
 
-            customVM.Name = "VM01";
+            //Gets target resource group
+            ResourceGroupResource resourceGroup = await resourceGroups.GetAsync("rg-gaming-667");
+
+            VirtualMachineResource virtualMachine = await resourceGroup.GetVirtualMachineAsync("VM03");
+
+            VirtualMachineCollection vms = resourceGroup.GetVirtualMachines();
+
+            foreach (VirtualMachineResource vm in vms)
+            {
+                if (nom.Equals(vm.Id.Name))
+                {
+                    if ((await VMstatus(nom)))
+                    {
+                        await vm.PowerOnAsync(WaitUntil.Completed);
+                    }
+                    else
+                    {
+                        await vm.PowerOffAsync(WaitUntil.Completed);
+                    }
+                }
+            }
+            return RedirectToAction(nameof(Index));
+        }
+
+        private async Task CreateVirtualMachineAsync(CustomVM customVM)
+        {
+
+            //Connect to Azure with Visual Studio credentials
+            ArmClient client = new(new ClientSecretCredential("b7b023b8-7c32-4c02-92a6-c8cdaa1d189c", "180d646d-d208-450a-bd63-397d3a7be25d", "Kct8Q~WpQGqBJCJ6YtQeHB_6QlLfmUm.4vsrQbrX"));
+
+            //Gets subscription
+            SubscriptionResource subscription = await client.GetDefaultSubscriptionAsync();
+            //Gets all resource groups
+            ResourceGroupCollection resourceGroups = subscription.GetResourceGroups();
+
+            //Create resource group
+            ResourceGroupData resourceGroupData = new(AzureLocation.NorthEurope);
+            await resourceGroups.CreateOrUpdateAsync(WaitUntil.Completed, "rg-gaming-667", resourceGroupData);
+
+            customVM.Name = "VM03";
             customVM.IP = "MyIP";
 
             //Gets target resource group
-            ResourceGroupResource resourceGroup = await resourceGroups.GetAsync("rg-gaming-666");
+            ResourceGroupResource resourceGroup = await resourceGroups.GetAsync("rg-gaming-667");
 
             VirtualMachineCollection vms = resourceGroup.GetVirtualMachines();
             NetworkInterfaceCollection nics = resourceGroup.GetNetworkInterfaces();

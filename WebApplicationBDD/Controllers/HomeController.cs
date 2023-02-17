@@ -23,6 +23,12 @@ namespace CloudplayWebApp.Controllers
             return View();
         }
 
+        public IActionResult Login()
+        {
+            string url = "/Identity/Account/Login";
+            return Redirect(url);
+        }
+
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {
